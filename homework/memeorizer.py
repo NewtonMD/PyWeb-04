@@ -1,7 +1,13 @@
-"""
-For your homework this week, you'll be creating a new WSGI application.
+'''______________________________________________________
+Mike Newton
+newton33@uw.edu
+Web Programming With Python 100
+University of Washington, Spring 2016
+Last Updated:  27 April 2016
+Python Version 3.5.1
+______________________________________________________'''
 
-The MEMEORIZER acquires a phrase from one of two sources, and applies it
+"""The MEMEORIZER acquires a phrase from one of two sources, and applies it
 to one of two meme images.
 
 The two possible sources are:
@@ -16,96 +22,31 @@ headline and then modifying it later if you want to.
 The two possible meme images are:
 
   1. The Buzz/Woody X, X Everywhere meme
-  2. The Ancient Aliens meme (eg https://memegenerator.net/instance/11837275)
+  2. The Ancient Aliens meme
 
-To begin, you will need to collect some information. Go to the Ancient
-Aliens meme linked above. Open your browser's network inspector; in Chrome
-this is Ctrl-Shift-J and then click on the network tab. Try typing in some
-new 'Bottom Text' and observe the network requests being made, and note
-the imageID for the Ancient Aliens meme.
+  You options are:
+        http://localhost:8080/fact/buzz
+        http://localhost:8080/fact/aliens
+        http://localhost:8080/news/buzz
+        http://localhost:8080/news/aliens
 
-TODO #1:
-The imageID for the Ancient Aliens meme is:
-
-You will also need a way to identify headlines on the CNN page using
-BeautifulSoup. On the 'Unnecessary Knowledge Page', our fact was
-wrapped like so:
-
-```
-<div id="content">
-  Penguins look like they're wearing tuxedos.
-</div>
-```
-
-So our facts were identified by the tag having
-* name: div
-* attribute name: id
-* attribute value: content.
-
-We used the following BeautifulSoup call to isolate that element:
-
-```
-element = parsed.find('div', id='content')
-```
-
-Now we have to figure out how to isolate CNN headlines. Go to cnn.com and
-'inspect' one of the 'Top Stories' headlines. In Chrome, you can right
-click on a headline and click 'Inspect'. If an element has a rightward
-pointing arrow, then you can click on it to see its contents.
-
-TODO #2:
-Each 'Top Stories' headline is wrapped in a tag that has:
-* name:
-* attribute name:
-* attribute value:
-
-NOTE: We used the `find` method to find our fact element from unkno.com.
-The `find` method WILL ALSO work for finding a headline element from cnn.com,
-although it will return exactly one headline element. That's enough to
-complete the assignment, but if you want to isolate more than one headline
-element you can use the `find_all` method instead.
-
-
-TODO #3:
-You will need to support the following four requests:
-
-```
-  http://localhost:8080/fact/buzz
-  http://localhost:8080/fact/aliens
-  http://localhost:8080/news/buzz
-  http://localhost:8080/news/aliens
-```
-
-You can accomplish this by modifying the memefacter.py that we created
-in class.
-
-There are multiple ways to architect this assignment! You will probably
-have to either change existing functions to take more arguments or create
-entirely new functions.
-
-I have started the assignment off by passing `path` into `process` and
-breaking it apart using `strip` and `split` on lines 136, 118, and 120.
-
-To submit your homework:
-
-  * Fork this repository (PyWeb-04).
-  * Edit this file to meet the homework requirements.
-  * Your script should be runnable using `$ python memeorizer.py`
-  * When the script is running, I should be able to view your
-    application in my browser.
-  * Commit and push your changes to your fork.
-  * Submit a link to your PyWeb-04 fork repository!
-
-"""
+        Just type one of those in your address bar and enjoy."""
 
 from bs4 import BeautifulSoup
 import requests
+import random
 
-def meme_it(fact):
+
+def meme_it(text,image):
     url = 'http://cdn.meme.am/Instance/Preview'
+    if image == 'buzz':
+        image_id = 2097248
+    elif image == 'aliens':
+        image_id = 627067
+   
     params = {
-        'imageID': 2097248,
-        'text1': fact
+        'imageID': image_id,
+        'text1': text
     }
 
     response = requests.get(url, params)
@@ -122,12 +63,32 @@ def get_fact():
     response = requests.get('http://unkno.com')
     return parse_fact(response.text)
 
+def parse_news(body):
+    parsed = BeautifulSoup(body, 'html5lib')
+    hlines_set = parsed.find_all('span', class_='cd__headline-text')
+
+    #turn bs4 set into a list of strings
+    hlines_list = []
+    for x in hlines_set:
+        hlines_list.append(x.text.strip())
+
+    #select a random headline from CNN    
+    news = random.choice(hlines_list)
+
+    return news
+
+def get_news():
+    response = requests.get('http://cnn.com')
+    return parse_news(response.text)
+
 def process(path):
     args = path.strip("/").split("/")
-
-    fact = get_fact()
-
-    meme = meme_it(fact)
+    if args[0] == 'fact':
+        meme_text = get_fact()
+        meme = meme_it(meme_text,args[1])
+    elif args[0] == 'news':
+        meme_text = get_news()
+        meme = meme_it(meme_text,args[1])
 
     return meme
 
